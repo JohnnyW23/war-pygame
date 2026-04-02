@@ -53,6 +53,14 @@ class Game:
 
         self.tiles = {}
 
+        self.dia = 1
+        self.hora = 0
+
+        self.logs = []
+
+        self.line_height = 15
+        self.scroll_offset = 0
+
         self.UPDATE_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(self.UPDATE_EVENT, 1000)
 
@@ -62,7 +70,6 @@ class Game:
     def run(self):
         while self.running:
             self.events()
-            self.update()
             self.draw()
 
             self.clock.tick(self.FPS)
@@ -71,29 +78,78 @@ class Game:
         sys.exit()
 
     def events(self):
-        from random import choice
+        from random import choice, randint
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
             
+            if event.type == pygame.MOUSEWHEEL:
+                padding = 10
+                line_height = 15
+
+                visible_height = self.logs_screen.height - padding * 2
+                total_height = len(self.logs) * line_height
+
+                max_scroll = max(0, total_height - visible_height)
+
+                self.scroll_offset -= event.y * 20
+
+                if self.scroll_offset < 0:
+                    self.scroll_offset = 0
+                elif self.scroll_offset > max_scroll:
+                    self.scroll_offset = max_scroll
+
+                            
             if event.type == self.UPDATE_EVENT:
                 index = self.exercito_index
                 exercito = self.exercitos_ativos[index]
                 inimigo = choice(exercito.inimigos)
 
-                '''
-                self.expandir_territorio(exercito, dominate=True)
+                exercito.inimigo = inimigo
+
+                dado1 = randint(1, 100)
+                dado2 = randint(1, 100)
+
+                relogio = f"[Dia {self.dia} | Hora {self.hora}]"
+
+                if dado1 > dado2:
+                    self.expandir_territorio(exercito, dominate=True)
+                    self.log(f"{relogio} {exercito.nome} atacou fortemente {inimigo.nome}!")
+
+                elif dado2 > dado1:
+                    self.log(f"{relogio} {exercito.nome} tentou atacar {inimigo.nome}, mas foi repelido.")
+                else:
+                    self.log(f"{relogio} {exercito.nome} e {inimigo.nome} lutaram, e houve um impasse.")
                 
                 if index == len(self.exercitos_ativos) - 1:
                     self.exercito_index = 0
                 else:
                     self.exercito_index += 1
-                '''
+            
+                if self.hora == 23:
+                    self.hora -= 23
+                    self.dia += 1
+                else: self.hora += 1
 
-    def update(self):
-        """Atualiza a lógica do jogo"""
-        pass
+    def log(self, texto):
+        padding = 10
+        line_height = 15
+
+        visible_height = self.logs_screen.height - padding * 2
+        total_height = len(self.logs) * line_height
+
+        max_scroll = max(0, total_height - visible_height)
+
+        estava_no_fim = self.scroll_offset >= max_scroll - 5
+
+        self.logs.append(texto)
+
+        total_height = len(self.logs) * line_height
+        max_scroll = max(0, total_height - visible_height)
+
+        if estava_no_fim:
+            self.scroll_offset = max_scroll
     
     def generate_map_tiles(self):
         from modules.tile import Tile
@@ -119,6 +175,7 @@ class Game:
         self.draw_map_screen()
         self.draw_log_screen()
         self.draw_territorios_existentes()
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.map_position, 3)
 
         pygame.display.flip()
 
@@ -180,8 +237,8 @@ class Game:
 
         background = pygame.image.load("assets/map_model.jpg")
         self.screen.blit(background, (x_minimo, y_minimo))
-        pygame.draw.rect(self.screen, self.cores["darkgreen"], (x_minimo, y_minimo, 940, 500), 3)
 
+        self.map_position = (x_minimo, y_minimo, 940, 500)
 
         # 940 x 500
     
@@ -190,10 +247,26 @@ class Game:
         x_minimo = self.screen_day_weather_status.width + 40
         y_minimo = 540
 
-        self.log_screen = pygame.Rect(x_minimo, y_minimo, 1580 - x_minimo, 240)
-        pygame.draw.rect(self.screen, self.cores["secundaria"], self.log_screen)
-        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.log_screen, 3)
+        self.logs_screen = pygame.Rect(x_minimo, y_minimo, 1580 - x_minimo, 240)
 
+        pygame.draw.rect(self.screen, self.cores["secundaria"], self.logs_screen)
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.logs_screen, 3)
+
+        # ativa corte (clip)
+        logs_clip = pygame.Rect(x_minimo, y_minimo + 10, 1580 - x_minimo, 220)
+        self.screen.set_clip(logs_clip)
+
+        padding = 10
+        line_height = 15
+
+        y = self.logs_screen.y + padding - self.scroll_offset
+
+        for log in self.logs:
+            text = self.fonts[10].render(log, True, (248, 214, 0))
+            self.screen.blit(text, (self.logs_screen.x + padding, y))
+            y += line_height
+
+        self.screen.set_clip(None)
 
     def territorios_iniciais(self):
         from modules.local import gerar_local
@@ -227,8 +300,6 @@ class Game:
                 tile = choice(exercito.tiles)
                 tile.local = gerar_local()
 
-                print(f"{exercito.nome}: {tile.local.nome} em ({tile.x}, {tile.y})")
-
 
     def expandir_territorio(self, exercito, dominate=False):
         from random import choice
@@ -254,7 +325,7 @@ class Game:
                         if vizinho.dono is None:
                             tiles_disponiveis.add(vizinho)
                     else:
-                        if vizinho.dono is not exercito:
+                        if vizinho.dono is None or vizinho.dono is exercito.inimigo:
                             tiles_disponiveis.add(vizinho)
 
         # se houver tiles disponíveis, conquista um aleatório
