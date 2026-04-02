@@ -25,13 +25,14 @@ class Game:
         self.cores = {
             "bg": (20, 25, 20),
             "secundaria": (5, 10, 5),
-            "branco": (250, 250, 250)
+            "branco": (250, 250, 250),
+            "darkgreen": (0, 45, 0)
         }
 
         # Fonte principal
         self.fonts = []
         for size in range(21):
-            self.fonts.append(pygame.font.Font('war pygame/fonts/JetBrainsMono-Regular.ttf', size=size))
+            self.fonts.append(pygame.font.Font('fonts/JetBrainsMono-Regular.ttf', size=size))
 
 
         self.exercitos = [
@@ -55,7 +56,8 @@ class Game:
         self.UPDATE_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(self.UPDATE_EVENT, 1000)
 
-        self.draw_start()
+        self.generate_map_tiles()
+        self.territorios_iniciais()
 
     def run(self):
         while self.running:
@@ -80,35 +82,51 @@ class Game:
                 exercito = self.exercitos_ativos[index]
                 inimigo = choice(exercito.inimigos)
 
-                self.expandir_territorio(exercito)
+                '''
+                self.expandir_territorio(exercito, dominate=True)
                 
                 if index == len(self.exercitos_ativos) - 1:
                     self.exercito_index = 0
                 else:
                     self.exercito_index += 1
+                '''
 
     def update(self):
         """Atualiza a lógica do jogo"""
         pass
+    
+    def generate_map_tiles(self):
+        from modules.tile import Tile
+        x_minimo = 640
+        y_minimo = 20
+
+        for y in range(0, 25):
+            y_value = y * 20
+            self.tiles[y_value] = {}
+            for x in range(0, 47):
+                x_value = x * 20
+
+                tile = pygame.Rect(x_minimo + x_value, y_minimo + y_value, 20, 20)
+                self.tiles[y_value][x_value] = Tile(None, (0, 0, 0), x_value, y_value, tile)
+
 
     def draw(self):
         """Desenha na tela"""
 
-        pygame.display.flip()
-    
-    def draw_start(self):
         self.screen.fill(self.cores["bg"])
         self.draw_day_weather_status()
         self.draw_army_cards()
         self.draw_map_screen()
-        self.territorios_iniciais()
+        self.draw_log_screen()
+        self.draw_territorios_existentes()
+
+        pygame.display.flip()
+
 
     def draw_day_weather_status(self):
         self.screen_day_weather_status = pygame.Rect(20, 20, 600, 60)
         pygame.draw.rect(self.screen, self.cores["secundaria"], self.screen_day_weather_status)
-
-        # LINHA TESTE
-        pygame.draw.rect(self.screen, (255, 0, 0), (self.width // 2, 0, 2, self.height))
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.screen_day_weather_status, 3)
 
 
     def draw_army_cards(self):
@@ -126,6 +144,7 @@ class Game:
             elif index == 3: card = pygame.Rect(x_minimo + 310, y_minimo + 350, 290, 330)
 
             pygame.draw.rect(self.screen, self.cores["secundaria"], card)
+            pygame.draw.rect(self.screen, self.cores["darkgreen"], card, 3)
 
              # --- Textos dentro do card ---
             # Nome do exército
@@ -141,9 +160,12 @@ class Game:
             self.screen.blit(perfil_text, (card.x + 10, card.y + 60))
 
             # Nível de poder do exército
-            fonte = pygame.font.Font('war pygame/fonts/DejaVuSans.ttf', size=55)
+            fonte = pygame.font.Font('fonts/DejaVuSans.ttf', size=55)
             poder_text = fonte.render(numeros_romanos[exercito.poder][0], True, exercito.cor)
             self.screen.blit(poder_text, (card.x + card.width - numeros_romanos[exercito.poder][1], card.y + 5))
+
+            territorio_text = self.fonts[12].render(f"Territórios: {len(exercito.tiles)}", True, self.cores["branco"])
+            self.screen.blit(territorio_text, (card.x + 10, card.y + 80))
 
             self.army_cards[exercito.id] = {
                 "card": card,
@@ -153,30 +175,30 @@ class Game:
             }
     
     def draw_map_screen(self):
-        from modules.tile import Tile
         x_minimo = self.screen_day_weather_status.width + 40
         y_minimo = 20
 
-        background = pygame.image.load("war pygame/assets/map_model.jpg")
+        background = pygame.image.load("assets/map_model.jpg")
         self.screen.blit(background, (x_minimo, y_minimo))
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], (x_minimo, y_minimo, 940, 500), 3)
 
-        # self.map = pygame.Rect(x_minimo, y_minimo, 1580 - x_minimo, 500)
-        # pygame.draw.rect(self.screen, (0, 0, 0), self.map)
 
         # 940 x 500
+    
 
-        for y in range(0, 25):
-            y_value = y * 20
-            self.tiles[y_value] = {}
-            for x in range(0, 47):
-                x_value = x * 20
+    def draw_log_screen(self):
+        x_minimo = self.screen_day_weather_status.width + 40
+        y_minimo = 540
 
-                tile = pygame.Rect(x_minimo + x_value, y_minimo + y_value, 20, 20)
-                self.tiles[y_value][x_value] = Tile(None, (0, 0, 0), x_value, y_value, tile)
+        self.log_screen = pygame.Rect(x_minimo, y_minimo, 1580 - x_minimo, 240)
+        pygame.draw.rect(self.screen, self.cores["secundaria"], self.log_screen)
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.log_screen, 3)
 
 
     def territorios_iniciais(self):
-        from random import choice
+        from modules.local import gerar_local
+        from random import choice, randint
+
         # escolher um tile inicial aleatório para cada exército
         for exercito in self.exercitos:
             # pega todos os tiles disponíveis (sem dono)
@@ -192,22 +214,26 @@ class Game:
             # marca como território inicial
             tile_inicial.dono = exercito
             exercito.tiles.append(tile_inicial)
-            s = pygame.Surface((20, 20), pygame.SRCALPHA)
-            s.fill((*exercito.cor, 170))
-            self.screen.blit(s, tile_inicial.tile.topleft)
-            # pygame.draw.rect(self.screen, exercito.cor, tile_inicial.tile)
 
         # expansão dos territórios
-        for round in range(180):
+        for _ in range(179):
             for exercito in self.exercitos:
                 self.expandir_territorio(exercito)
+            
+        for exercito in self.exercitos:
+            locais = randint(5, 7)
 
-    
+            for _ in range(locais):
+                tile = choice(exercito.tiles)
+                tile.local = gerar_local()
 
-    def expandir_territorio(self, exercito):
+                print(f"{exercito.nome}: {tile.local.nome} em ({tile.x}, {tile.y})")
+
+
+    def expandir_territorio(self, exercito, dominate=False):
         from random import choice
 
-        tiles_disponiveis = []
+        tiles_disponiveis = set()
         for tile in exercito.tiles:
             # coordenadas do tile atual
             x = tile.x
@@ -224,20 +250,51 @@ class Game:
             for vx, vy in vizinhos:
                 if vy in self.tiles and vx in self.tiles[vy]:
                     vizinho = self.tiles[vy][vx]
-                    if vizinho.dono is None:
-                        tiles_disponiveis.append(vizinho)
+                    if not dominate:
+                        if vizinho.dono is None:
+                            tiles_disponiveis.add(vizinho)
+                    else:
+                        if vizinho.dono is not exercito:
+                            tiles_disponiveis.add(vizinho)
 
         # se houver tiles disponíveis, conquista um aleatório
         if tiles_disponiveis:
-            novo_tile = choice(tiles_disponiveis)
+            novo_tile = choice(list(tiles_disponiveis))
+            antigo_dono = novo_tile.dono
+            if antigo_dono is not None:
+                antigo_dono.tiles.remove(novo_tile)
             novo_tile.dono = exercito
             exercito.tiles.append(novo_tile)
-            s = pygame.Surface((20, 20), pygame.SRCALPHA)
-            s.fill((*exercito.cor, 170))
-            self.screen.blit(s, novo_tile.tile.topleft)
-            # pygame.draw.rect(self.screen, exercito.cor, novo_tile.tile)
 
-            
+
+    def draw_territorios_existentes(self):
+        for exercito in self.exercitos:
+            overlay = pygame.Surface((20, 20), pygame.SRCALPHA)
+            overlay.fill((*exercito.cor, 170))
+
+            for tile in exercito.tiles:
+                self.screen.blit(overlay, tile.tile.topleft)
+                if tile.local is not None:
+                    imagem = pygame.image.load(f"assets/local_icons/{tile.local.tipo}.png")
+                    self.screen.blit(imagem, (tile.tile.x + 2, tile.tile.y + 2))
+    
+
+    def get_frame(self, sheet, col, row, size=64):
+        frame = pygame.Surface((size, size), pygame.SRCALPHA)
+        frame.blit(
+            sheet,
+            (0, 0),
+            (col * size, row * size, size, size)
+        )
+        return frame
+    
+    def carregar_sprites(self, character):
+        
+        body = pygame.image.load(character.body).convert_alpha()
+        head = pygame.image.load(character.head).convert_alpha()
+        hair = pygame.image.load(character.hair).convert_alpha()
+
+
 if __name__ == "__main__":
 
     game = Game()
