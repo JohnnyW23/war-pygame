@@ -13,6 +13,7 @@ class Exercito:
         self.estrategia = 150
         self.inimigos = []
         self.tiles = []
+        self.locais = []
 
         self.canal_nome = canal_nome
         self.canal_sigla = canal_sigla
@@ -30,7 +31,7 @@ class Exercito:
         import json
         from random import choice
 
-        with open("war pygame/names.json", "r", encoding="utf-8") as f:
+        with open("names.json", "r", encoding="utf-8") as f:
             names = json.load(f)
         
         marechais = [name['name'] for name in names if name['gender'] == 'male' or name['gender'] == 'unisex']
