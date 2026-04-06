@@ -196,8 +196,7 @@ class Game:
                     self.scroll_offset = 0
                 elif self.scroll_offset > max_scroll:
                     self.scroll_offset = max_scroll
-
-                            
+     
             if event.type == self.UPDATE_EVENT:
 
                 # sistema de chance
