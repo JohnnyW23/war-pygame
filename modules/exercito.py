@@ -18,11 +18,6 @@ class Exercito:
         self.canal_nome = canal_nome
         self.canal_sigla = canal_sigla
 
-        self.resumo = {
-            "pib": round(uniform(0.1, 1), 2),
-            "inflacao": round(uniform(1, 3), 2)
-        }
-
         self.marechal = self.escolher_marechal()
 
 

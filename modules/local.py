@@ -394,7 +394,6 @@ def gerar_local():
                     "Federal",
                     "de Combate",
                     "de Apoio",
-                    "do Segredo",
                     "de Espionagem",
                     "de Inteligência"
                 ],

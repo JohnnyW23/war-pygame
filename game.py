@@ -12,18 +12,10 @@ class Game:
         # Configurações da janela
         self.width = 1600
         self.height = 800
+
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Simulador de Guerra")
-
-        # Controle de FPS
-        self.clock = pygame.time.Clock()
-        self.FPS = 60
-
-        # Controle do loop
-        self.running = True
-
         self.map_background = pygame.image.load("assets/map_model.jpg").convert()
-
         self.map_position = (640, 20, 940, 500)
 
         self.local_icons = {}
@@ -45,7 +37,8 @@ class Game:
             "bg": (20, 25, 20),
             "secundaria": (5, 10, 5),
             "branco": (250, 250, 250),
-            "darkgreen": (0, 45, 0)
+            "darkgreen": (0, 45, 0),
+            "amarelo": (248,214,0)
         }
 
         self.spritesheet = {
@@ -57,18 +50,17 @@ class Game:
         }
 
         self.sprite_explosao()
-        self.explosoes = []
-        self.explosoes_agendadas = []
 
         # Fonte principal
         self.fonts = []
-        for size in range(21):
+        for size in range(30):
             self.fonts.append(pygame.font.Font('fonts/JetBrainsMono-Regular.ttf', size=size))
         
         self.font_big = pygame.font.Font('fonts/DejaVuSans.ttf', size=55)
 
         self.renders = {
-            "locais_dominados_texto": self.fonts[12].render("Locais dominados:", True, self.cores["branco"])
+            "locais_dominados_texto": self.fonts[12].render("Locais dominados:", True, self.cores["branco"]),
+            "status_dia_texto": self.fonts[28].render("Dia ", True, self.cores["branco"])
         }
 
         self.exercitos = [
@@ -98,8 +90,15 @@ class Game:
 
         self.dia = 1
         self.hora = 0
+        self.minutos = 0
+        self.segundos = 0
 
-        self.logs = []
+        self.tempo_acumulado = 0
+
+        self.logs = [
+            self.fonts[10].render(f'=============== Dia {self.dia} ===============', True, self.cores["amarelo"]),
+            self.fonts[10].render('', True, self.cores["amarelo"])
+        ]
 
         self.line_height = 15
         self.scroll_offset = 0
@@ -112,19 +111,68 @@ class Game:
         self.generate_map_tiles()
         self.territorios_iniciais()
 
-        self.army_card_cache = {}
+        self.atualizar_horario()
+
+        self.atualizar_status_weather()
+
         self.atualizar_army_cards()
+
+        # Controle de FPS
+        self.clock = pygame.time.Clock()
+        self.FPS = 60
+
+        self.event_chance = 10
+
+        # Controle do loop
+        self.running = True
+    
+
+    def atualizar_horario(self):
+
+        hora = int(self.hora)
+        minutos = int(self.minutos)
+        segundos = int(self.segundos)
+
+        self.horario = f"[{hora:02}:{minutos:02}:{segundos:02}]"
+        self.horario_formatado = f"[{hora:02}:{minutos:02}]"
 
 
     def run(self):
         while self.running:
+
+            dt = self.clock.tick(self.FPS)
+            self.tempo_acumulado += dt
+
+            self.atualizar_tempo_jogo(dt)
+
             self.draw()
             self.events()
 
-            self.clock.tick(self.FPS)
-
         pygame.quit()
         sys.exit()
+
+    def atualizar_tempo_jogo(self, dt):
+
+        # segundos visuais do relógio
+        self.segundos += dt * 1.2
+
+        if self.segundos >= 60:
+            self.segundos -= 60
+            self.minutos += 1
+
+        if self.minutos >= 60:
+            self.minutos -= 60
+            self.hora += 1
+
+        if self.hora >= 24:
+            self.hora = 0
+            self.dia += 1
+            self.log('')
+            self.log(f'=============== Dia {self.dia} ===============')
+            self.log('')
+
+        self.atualizar_status_weather()
+
 
     def events(self):
         from random import choice, randint
@@ -151,36 +199,42 @@ class Game:
 
                             
             if event.type == self.UPDATE_EVENT:
-                index = self.exercito_index
-                exercito = self.exercitos_ativos[index]
-                inimigo = choice(exercito.inimigos)
 
-                exercito.inimigo = inimigo
+                # sistema de chance
+                if randint(1, 100) <= self.event_chance:
 
-                dado1 = randint(1, 100)
-                dado2 = randint(1, 100)
+                    index = self.exercito_index
+                    exercito = self.exercitos_ativos[index]
+                    inimigo = choice(exercito.inimigos)
 
-                relogio = f"[Dia {self.dia} | Hora {self.hora}]"
+                    exercito.inimigo = inimigo
 
-                if dado1 > dado2:
-                    self.expandir_territorio(exercito, dominate=True)
-                    self.log(f"{relogio} {exercito.nome} atacou fortemente {inimigo.nome}!")
+                    dado1 = randint(1, 100)
+                    dado2 = randint(1, 100)
 
-                elif dado2 > dado1:
-                    self.log(f"{relogio} {exercito.nome} tentou atacar {inimigo.nome}, mas foi repelido.")
+                    relogio = f"{self.horario}"
+
+                    if dado1 > dado2:
+                        self.expandir_territorio(exercito, dominate=True)
+                        self.log(f"{relogio} {exercito.nome} atacou fortemente {inimigo.nome}!")
+
+                    elif dado2 > dado1:
+                        self.log(f"{relogio} {exercito.nome} tentou atacar {inimigo.nome}, mas foi repelido.")
+                    else:
+                        self.log(f"{relogio} {exercito.nome} e {inimigo.nome} lutaram, e houve um impasse.")
+
+                    # reset da chance
+                    self.event_chance = 10
+
+                    # próximo exército
+                    if index == len(self.exercitos_ativos) - 1:
+                        self.exercito_index = 0
+                    else:
+                        self.exercito_index += 1
+
                 else:
-                    self.log(f"{relogio} {exercito.nome} e {inimigo.nome} lutaram, e houve um impasse.")
-                
-                if index == len(self.exercitos_ativos) - 1:
-                    self.exercito_index = 0
-                else:
-                    self.exercito_index += 1
-
-            
-                if self.hora == 23:
-                    self.hora -= 23
-                    self.dia += 1
-                else: self.hora += 1
+                    # aumenta chance se não ocorreu evento
+                    self.event_chance = min(self.event_chance + 10, 100)
 
 
     def log(self, texto):
@@ -194,7 +248,7 @@ class Game:
 
         estava_no_fim = self.scroll_offset >= max_scroll - 5
 
-        render = self.fonts[10].render(texto, True, (248,214,0))
+        render = self.fonts[10].render(texto, True, self.cores["amarelo"])
         self.logs.append(render)
 
         self.logs = self.logs[-100:]
@@ -239,6 +293,7 @@ class Game:
         """Desenha na tela"""
 
         self.screen.fill(self.cores["bg"])
+        self.atualizar_horario()
         self.draw_day_weather_status()
         self.draw_army_cards()
         self.draw_map_screen()
@@ -258,15 +313,16 @@ class Game:
         arquivo = self.spritesheet['explosao']['arquivo']
         layer = self.spritesheet['explosao']['layer']
         self.spritesheet['explosao']['frames'] = [self.get_frame(arquivo, i, 64, 64, layer) for i in range(12)]
+        self.explosoes = []
+        self.explosoes_agendadas = []
 
     def update_explosoes(self):
-
         for explosao in self.explosoes:
             explosao.update()
             explosao.draw(self.screen)
 
         self.explosoes = [e for e in self.explosoes if not e.finished]
-        self.explosoes = self.explosoes[-20:]
+        self.explosoes = self.explosoes[-30:]
 
     def agendar_explosoes(self, x, y):
         from random import randint
@@ -309,6 +365,15 @@ class Game:
         self.screen_day_weather_status = pygame.Rect(20, 20, 600, 60)
         pygame.draw.rect(self.screen, self.cores["secundaria"], self.screen_day_weather_status)
         pygame.draw.rect(self.screen, self.cores["darkgreen"], self.screen_day_weather_status, 3)
+
+        self.screen.blit(self.renders["status_dia_texto"], (40, 30))
+
+        cache = self.status_weather_cache
+
+        self.screen.blit(cache["dia"], (100, 30))
+        self.screen.blit(cache["horario"], (160, 30))
+
+
 
 
     def draw_army_cards(self):
@@ -356,6 +421,16 @@ class Game:
                 self.screen.blit(local, (card.x + 10, card.y + local_y))
 
                 local_y += 15
+    
+
+    def atualizar_status_weather(self):
+        cache = {}
+
+        cache["dia"] = self.fonts[28].render(f"{self.dia}", True, self.cores["amarelo"])
+
+        cache["horario"] = self.fonts[28].render(self.horario_formatado, True, self.cores["amarelo"])
+
+        self.status_weather_cache = cache
     
 
     def atualizar_army_cards(self):
