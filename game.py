@@ -2,9 +2,11 @@ import pygame
 import sys
 import os
 
+
 class Game:
     def __init__(self):
-        from modules.exercito import Exercito
+        from modules.objetos.exercito import Exercito
+        from modules.objetos.rain import RainSystem
 
         pygame.init()
 
@@ -66,6 +68,31 @@ class Game:
             "locais_dominados_texto": self.fontsJB[12].render("Locais dominados:", True, self.cores["branco"]),
             "status_dia_texto": self.fontsJB[28].render("Dia ", True, self.cores["branco"])
         }
+
+        self.climas = {
+            "ensolarado": (pygame.image.load("assets/clima/ensolarado.png"), 0.25),
+            "nublado": (pygame.image.load("assets/clima/nublado.png"), 0.20),
+            "chuva leve": (pygame.image.load("assets/clima/chuva leve.png"), 0.15),
+            "chuva forte": (pygame.image.load("assets/clima/chuva forte.png"), 0.07),
+            "tempestade": (pygame.image.load("assets/clima/tempestade.png"), 0.05),
+            "tormenta elétrica": (pygame.image.load("assets/clima/tormenta eletrica.png"), 0.03),
+            "ventania": (pygame.image.load("assets/clima/ventania.png"), 0.10),
+            "nevoeiro": (pygame.image.load("assets/clima/nevoeiro.png"), 0.05),
+            "frio": (pygame.image.load("assets/clima/frio.png"), 0.05),
+            "calor extremo": (pygame.image.load("assets/clima/calor extremo.png"), 0.05)
+        }
+
+        
+        self.map_rect = pygame.Rect(640, 20, 940, 500)
+
+        self.rain_surface = pygame.Surface(
+            (self.map_rect.width, self.map_rect.height),
+            pygame.SRCALPHA
+        )
+
+        self.rain = RainSystem(940, 500, intensity=400)
+        self.raining = True
+
 
         self.exercitos = [
             Exercito(0, "Saint Louis", (255, 20, 20), "Resistência Popular", "RSP"),
@@ -130,7 +157,7 @@ class Game:
 
         self.dt = self.clock.tick(self.FPS)
 
-        self.event_chance = 10
+        self.event_chance = 5
 
         # Controle do loop
         self.running = True
@@ -151,26 +178,20 @@ class Game:
     def escolher_clima(self):
         from random import choices
 
-        climas = {
-            "ensolarado": ("☀️", 0.25),
-            "nublado": ("☁️", 0.20),
-            "chuva leve": ("🌦️", 0.15),
-            "chuva forte": ("🌧️", 0.07),
-            "tempestade": ("⛈️", 0.05),
-            "tormenta elétrica": ("🌩️", 0.03),
-            "ventania": ("💨", 0.10),
-            "nevoeiro": ("🌫️", 0.05),
-            "frio": ("🥶", 0.05),
-            "calor extremo": ("🔥", 0.05)
-        }
+        climas = self.climas
 
         nomes = list(climas.keys())
         probabilidades = [climas[c][1] for c in nomes]
         
         clima_escolhido = choices(nomes, weights=probabilidades, k=1)[0]
-        emoji = climas[clima_escolhido][0]
+        imagem = climas[clima_escolhido][0]
+
+        if clima_escolhido in ['chuva leve', 'chuva forte']:
+            self.raining = True
+        else:
+            self.raining = False
         
-        return [clima_escolhido.capitalize(), emoji]
+        return [clima_escolhido.capitalize(), imagem]
     
 
     def run(self):
@@ -181,7 +202,7 @@ class Game:
             self.atualizar_tempo_jogo(dt)
 
             self.draw()
-            self.events(dt)
+            self.events()
 
         pygame.quit()
         sys.exit()
@@ -200,17 +221,17 @@ class Game:
             self.hora += 1
 
         if self.hora >= 24:
+            self.clima = self.escolher_clima()
             self.hora = 0
             self.dia += 1
             self.log('')
             self.log(f'=============== Dia {self.dia} ===============')
             self.log('')
-
-        self.escolher_clima()
+        
         self.atualizar_status_weather()
 
 
-    def events(self, dt):
+    def events(self):
         from random import choice, randint
         from math import ceil
         from modules.logica import gerar_evento
@@ -253,9 +274,18 @@ class Game:
 
        
             if event.type == self.UPDATE_EVENT:
+                
+                if self.raining:
+                        self.rain.update(self.clock.tick(60))
+
 
                 # sistema de chance
                 if randint(1, 100) <= self.event_chance:
+
+                    for exercito in self.exercitos_ativos:
+                        exercito.marechal.character.set_mode("Idle")
+
+                    exercito
 
                     index = self.exercito_index
                     exercito = self.exercitos_ativos[index]
@@ -270,28 +300,36 @@ class Game:
                     relogio = f"{self.horario}"
 
                     if dado1 > dado2:
-                        poder_do_round = ceil((dado1 - dado2) / 10)
+                        poder_do_round = ceil((dado1 - dado2) / 3)
                         evento = gerar_evento(exercito, poder_do_round, self.clima[0])
                         if evento.tipo not in ['melhoria', 'sorte']:
+                            exercito.marechal.character.set_mode("Combat 1h - Idle")
+                            inimigo.marechal.character.set_mode("Combat 1h - Idle")
                             self.expandir_territorio(exercito, dominate=True)
+                        else:
+                            exercito.marechal.character.set_mode("Run")
                         self.log(f"{relogio} {evento.descricao}")
                         self.log(f"           {evento.positivo}")
                         evento.efeito_pos()
 
                     else:
-                        poder_do_round = ceil((dado2 - dado1) / 10)
+                        poder_do_round = ceil((dado2 - dado1) / 3)
                         evento = gerar_evento(exercito, poder_do_round, self.clima[0])
                         if poder_do_round == 0: poder_do_round += 1
                         if evento.tipo not in ['melhoria', 'sorte']:
+                            exercito.marechal.character.set_mode("Combat 1h - Idle")
+                            inimigo.marechal.character.set_mode("Combat 1h - Idle")
                             self.expandir_territorio(exercito.inimigo, dominate=True)
+                        else:
+                            exercito.marechal.character.set_mode("Run")
                         self.log(f"{relogio} {evento.descricao}")
                         self.log(f"           {evento.negativo}")
                         evento.efeito_neg()
-                    
+
                     self.atualizar_army_cards()
 
                     # reset da chance
-                    self.event_chance = 10
+                    self.event_chance = 5
 
                     # próximo exército
                     if index == len(self.exercitos_ativos) - 1:
@@ -301,7 +339,7 @@ class Game:
 
                 else:
                     # aumenta chance se não ocorreu evento
-                    self.event_chance = min(self.event_chance + 10, 100)
+                    self.event_chance = min(self.event_chance + 5, 100)
 
 
     def log(self, texto):
@@ -365,7 +403,7 @@ class Game:
 
 
     def generate_map_tiles(self):
-        from modules.tile import Tile
+        from modules.objetos.tile import Tile
 
         MAP_W = 47
         MAP_H = 25
@@ -402,6 +440,10 @@ class Game:
         self.draw_army_cards()
         self.draw_map_screen()
         self.draw_log_screen()
+        if self.raining:
+            self.rain_surface.fill((0, 0, 0, 0))  # limpa transparência
+            self.rain.draw(self.rain_surface)
+            self.screen.blit(self.rain_surface, self.map_rect.topleft)
         pygame.draw.rect(self.screen, self.cores["darkgreen"], self.map_position, 3)
         self.processar_explosoes_agendadas()
         self.update_explosoes()
@@ -449,7 +491,7 @@ class Game:
             })
     
     def processar_explosoes_agendadas(self):
-        from modules.explosao import Explosao
+        from modules.objetos.explosao import Explosao
 
         agora = pygame.time.get_ticks()
 
@@ -480,9 +522,9 @@ class Game:
 
         self.screen.blit(cache["dia"], (110, 30))
         
-        self.screen.blit(cache["clima"], (170, 30))
-        emoji_x = 170 + cache["clima"].get_width() + 10
-        self.screen.blit(cache["emoji_clima"], (emoji_x, 30))
+        self.screen.blit(cache["clima"], (170, 35))
+        clima_imagem_x = 170 + cache["clima"].get_width() + 10
+        self.screen.blit(cache["clima_imagem"], (clima_imagem_x, 34))
 
         self.screen.blit(cache["horario"], (490, 30))
 
@@ -502,18 +544,18 @@ class Game:
                 frame_marechal = pygame.Rect(x_minimo + 190 + 310, y_minimo + 10, 60, 90)
             elif index == 2:
                 card = pygame.Rect(x_minimo, y_minimo + 350, 290, 330)
-                frame_marechal = pygame.Rect(x_minimo + 190, y_minimo + 10 + 350, 60, 90)
+                frame_marechal = pygame.Rect(x_minimo + 190, y_minimo + 10 + 350, 64, 90)
             elif index == 3:
                 card = pygame.Rect(x_minimo + 310, y_minimo + 350, 290, 330)
-                frame_marechal = pygame.Rect(x_minimo + 190 + 310, y_minimo + 10 + 350, 60, 90)
+                frame_marechal = pygame.Rect(x_minimo + 190 + 310, y_minimo + 10 + 350, 64, 90)
 
             pygame.draw.rect(self.screen, self.cores["secundaria"], card)
             pygame.draw.rect(self.screen, self.cores["darkgreen"], card, 3)
 
-            pygame.draw.rect(self.screen, (10, 20, 10), frame_marechal)
+            pygame.draw.rect(self.screen, (200, 230, 200), frame_marechal)
             pygame.draw.rect(self.screen, self.cores["darkgreen"], frame_marechal, 3)
-            exercito.marechal.character.draw(self.screen, (frame_marechal.x, frame_marechal.y + 5))
             exercito.marechal.character.update(self.dt)
+            exercito.marechal.character.draw(self.screen, (frame_marechal.x, frame_marechal.y + 5))
 
             # --- Textos dentro do card ---
             cache = self.army_card_cache[exercito.id]
@@ -571,9 +613,9 @@ class Game:
 
         cache["dia"] = self.fontsJB[28].render(f"{self.dia}", True, self.cores["amarelo"])
 
-        cache["clima"] = self.fontsJB[28].render(f"{self.clima[0].capitalize()}", True, self.cores["amarelo"])
+        cache["clima"] = self.fontsJB[24].render(f"{self.clima[0].capitalize()}", True, self.cores["amarelo"])
 
-        cache["emoji_clima"] = pygame.font.Font('fonts/DejaVuSans.ttf', 28).render(f"{self.clima[1]}", True, self.cores["amarelo"])
+        cache["clima_imagem"] = self.clima[1]
 
         cache["horario"] = self.fontsJB[28].render(self.horario_formatado, True, self.cores["amarelo"])
 
@@ -582,7 +624,7 @@ class Game:
 
     def atualizar_army_cards(self):
 
-        from modules.num_romano import numeros_romanos
+        from modules.objetos.num_romano import numeros_romanos
 
         self.army_card_cache = {}
 
@@ -683,7 +725,7 @@ class Game:
         self.screen.set_clip(None)
 
     def territorios_iniciais(self):
-        from modules.local import gerar_local
+        from modules.objetos.local import gerar_local
         from random import choice, randint
 
         # escolher um tile inicial aleatório para cada exército
@@ -739,12 +781,11 @@ class Game:
                 if 0 <= vx < 47 and 0 <= vy < 25:
 
                     vizinho = self.tiles[vy][vx]
-                    if not dominate:
-                        if vizinho.dono is None:
-                            tiles_disponiveis.add(vizinho)
-                    else:
-                        if vizinho.dono is None or vizinho.dono is exercito.inimigo:
-                            tiles_disponiveis.add(vizinho)
+                    if vizinho.dono is None:
+                        tiles_disponiveis.add(vizinho)
+                    elif dominate and vizinho.dono is exercito.inimigo:
+                        tiles_disponiveis.add(vizinho)
+
 
         # se houver tiles disponíveis, conquista um aleatório
         if tiles_disponiveis:

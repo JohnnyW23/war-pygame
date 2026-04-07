@@ -1,5 +1,5 @@
 def gerar_evento(exercito, poder_do_round, clima_jogo):
-        from modules.evento import Evento
+        from modules.objetos.evento import Evento
         from random import choices, choice
         from math import ceil
 
