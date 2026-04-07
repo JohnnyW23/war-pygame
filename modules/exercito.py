@@ -23,6 +23,7 @@ class Exercito:
 
     def escolher_marechal(self):
         from modules.marechal import Marechal
+        from modules.character import generate_character
         import json
         from random import choice
 
@@ -59,5 +60,6 @@ class Exercito:
         perfil_info = choice(perfis)
         cor = perfil_info[1]
         perfil = perfil_info[0]
+        character = generate_character()
 
-        return Marechal(nome, perfil, cor)
+        return Marechal(nome, perfil, cor, character)

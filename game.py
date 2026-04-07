@@ -2,7 +2,6 @@ import pygame
 import sys
 import os
 
-
 class Game:
     def __init__(self):
         from modules.exercito import Exercito
@@ -125,16 +124,18 @@ class Game:
 
         self.atualizar_status_weather()
 
-        self.atualizar_army_cards()
-
         # Controle de FPS
         self.clock = pygame.time.Clock()
         self.FPS = 60
+
+        self.dt = self.clock.tick(self.FPS)
 
         self.event_chance = 10
 
         # Controle do loop
         self.running = True
+
+        self.atualizar_army_cards()
     
 
     def atualizar_horario(self):
@@ -172,17 +173,15 @@ class Game:
         return [clima_escolhido.capitalize(), emoji]
     
 
-
     def run(self):
         while self.running:
-
             dt = self.clock.tick(self.FPS)
             self.tempo_acumulado += dt
 
             self.atualizar_tempo_jogo(dt)
 
             self.draw()
-            self.events()
+            self.events(dt)
 
         pygame.quit()
         sys.exit()
@@ -211,7 +210,7 @@ class Game:
         self.atualizar_status_weather()
 
 
-    def events(self):
+    def events(self, dt):
         from random import choice, randint
         from math import ceil
         from modules.logica import gerar_evento
@@ -263,6 +262,7 @@ class Game:
                     inimigo = choice(exercito.inimigos)
 
                     exercito.inimigo = inimigo
+                    inimigo.inimigo = exercito
 
                     dado1 = randint(1, 100)
                     dado2 = randint(1, 100)
@@ -510,9 +510,12 @@ class Game:
             pygame.draw.rect(self.screen, self.cores["secundaria"], card)
             pygame.draw.rect(self.screen, self.cores["darkgreen"], card, 3)
 
+            pygame.draw.rect(self.screen, (10, 20, 10), frame_marechal)
             pygame.draw.rect(self.screen, self.cores["darkgreen"], frame_marechal, 3)
+            exercito.marechal.character.draw(self.screen, (frame_marechal.x, frame_marechal.y + 5))
+            exercito.marechal.character.update(self.dt)
 
-             # --- Textos dentro do card ---
+            # --- Textos dentro do card ---
             cache = self.army_card_cache[exercito.id]
 
             self.screen.blit(cache["nome"], (card.x + 10, card.y + 10))
@@ -583,8 +586,7 @@ class Game:
 
         self.army_card_cache = {}
 
-        for exercito in self.exercitos:
-
+        for exercito in self.exercitos_ativos:
             cache = {}
 
             cache["nome"] = self.fontsJB[16].render(exercito.nome, True, exercito.cor)
@@ -779,7 +781,6 @@ class Game:
         image = pygame.Surface((width, height), pygame.SRCALPHA)
         image.blit(sheet, (0, 0), rect)
         return image
-
 
 if __name__ == "__main__":
 
