@@ -5,7 +5,7 @@ class Exercito:
         self.id = id
         self.nome = nome
         self.cor = cor
-        self.poder = 1
+        self.poder = 8
         self.forca = 300
         self.tecnologia = 150
         self.suprimentos = 150
