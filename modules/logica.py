@@ -1386,3 +1386,39 @@ def gerar_evento(exercito, poder_do_round, clima_jogo):
         
         else:
             return choice(evento)
+
+
+def poder(exercito):
+        from random import choice
+
+        eventos = [
+            f"As forças de {exercito.nome} capturaram um importante centro de comando inimigo, elevando seu domínio no conflito.",
+            f"{exercito.nome} interceptou e destruiu um contingente crucial de {exercito.inimigo.nome}, alterando o equilíbrio da guerra.",
+            f"Uma operação coordenada garantiu a {exercito.nome} o controle total de rotas estratégicas antes dominadas pelo inimigo.",
+            f"Após uma ofensiva bem-sucedida, {exercito.nome} desmantelou linhas críticas de defesa de {exercito.inimigo.nome}, consolidando sua superioridade.",
+            f"{exercito.nome} obteve uma vitória decisiva em campo aberto, provando sua supremacia militar diante de {exercito.inimigo.nome}.",            
+            f"Um avanço estratégico permitiu que {exercito.nome} tomasse controle de posições vitais, enfraquecendo drasticamente o inimigo.",           
+            f"As tropas de {exercito.nome} realizaram uma manobra impecável, cercando forças de {exercito.inimigo.nome} e forçando sua retirada.",           
+            f"{exercito.nome} interceptou e destruiu um contingente crucial de {exercito.inimigo.nome}, alterando o equilíbrio da guerra.",
+            f"Liderança militar de {exercito.nome} executou um plano audacioso que resultou em uma conquista histórica no conflito.",       
+            f"{exercito.nome} obteve uma vitória simbólica de grande impacto, fortalecendo sua posição política e militar.",
+            f"Ofensiva de {exercito.nome} quebrou a resistência organizada de {exercito.inimigo.nome}, ampliando seu poder no teatro de guerra.",
+            f"Operação de forças especiais de {exercito.nome} eliminou o comandante supremo das tropas de {exercito.inimigo.nome}, causando desorganização imediata no front.",
+            f"{exercito.nome} executou com sucesso um ataque direcionado que resultou na morte do marechal responsável pela defesa central de {exercito.inimigo.nome}.",
+            f"Durante um avanço coordenado, tropas de {exercito.nome} localizaram e neutralizaram o general encarregado da logística de {exercito.inimigo.nome}.",
+            f"Bombardeio preciso de {exercito.nome} atingiu o posto de comando móvel de {exercito.inimigo.nome}, matando seu principal estrategista militar.",
+            f"Forças de {exercito.nome} interceptaram um comboio de alto escalão e eliminaram o almirante responsável pelas operações navais de {exercito.inimigo.nome}.",
+            f"Após semanas de inteligência, {exercito.nome} capturou e executou o oficial responsável pelas contraofensivas de {exercito.inimigo.nome}.",
+            f"Incursão atrás das linhas inimigas permitiu que {exercito.nome} eliminasse o comandante das tropas de elite de {exercito.inimigo.nome}.",
+            f"Governo de {exercito.nome} firmou um pacto militar emergencial com uma das potências do G7, garantindo apoio estratégico imediato.",
+            f"Após atingir as normas, {exercito.nome} assinou um acordo internacional de cooperação militar que liberou acesso a armamentos, instrutores e informações sigilosas.",
+            f"Governo de {exercito.nome} conseguiu isolar diplomaticamente {exercito.inimigo.nome}, pressionando outras nações a suspenderem qualquer apoio.",
+            f"Uma aliança defensiva foi formalizada por {exercito.nome} com blocos regionais, assegurando reforços militares em caso de escalada do conflito.",
+            f"Alto comando político de {exercito.nome} aprovou uma mobilização total da indústria de guerra, ampliando drasticamente sua capacidade militar.",
+            f"{exercito.nome} negociou apoio indireto de um bloco regional, garantindo recursos e cobertura política no cenário internacional.",
+            f"Governo de {exercito.nome} obteve apoio de facções dissidentes de {exercito.inimigo.nome}. Fontes indicam exploração de divisões internas.",
+            f"{exercito.nome} conseguiu aprovação de medidas de guerra que centralizaram o comando militar, acelerando decisões e ofensivas."
+        ]
+
+        evento = choice(eventos)
+        return evento
