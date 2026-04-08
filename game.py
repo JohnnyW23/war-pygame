@@ -6,7 +6,7 @@ import os
 class Game:
     def __init__(self):
         from modules.objetos.exercito import Exercito
-        from modules.objetos.climas import RainSystem, SunnyOverlay, CloudyOverlay
+        from modules.objetos.climas import RainSystem, TemperatureOverlay, CloudyOverlay, FogMoving, LightningBlink, WindOverlay, WindSystem
 
         pygame.init()
 
@@ -70,29 +70,38 @@ class Game:
         }
 
         self.climas = {
-            "ensolarado": (pygame.image.load("assets/clima/ensolarado.png"), 0.25),
-            "nublado": (pygame.image.load("assets/clima/nublado.png"), 0.20),
-            "chuva leve": (pygame.image.load("assets/clima/chuva leve.png"), 0.15),
+            "ensolarado": (pygame.image.load("assets/clima/ensolarado.png"), 0.31),
+            "nublado": (pygame.image.load("assets/clima/nublado.png"), 0.15),
+            "chuva leve": (pygame.image.load("assets/clima/chuva leve.png"), 0.10),
             "chuva forte": (pygame.image.load("assets/clima/chuva forte.png"), 0.07),
             "tempestade": (pygame.image.load("assets/clima/tempestade.png"), 0.05),
-            "tormenta elétrica": (pygame.image.load("assets/clima/tormenta eletrica.png"), 0.03),
-            "ventania": (pygame.image.load("assets/clima/ventania.png"), 0.10),
+            "tormenta elétrica": (pygame.image.load("assets/clima/tormenta eletrica.png"), 0.02),
+            "ventania": (pygame.image.load("assets/clima/ventania.png"), 0.05),
             "nevoeiro": (pygame.image.load("assets/clima/nevoeiro.png"), 0.05),
-            "frio": (pygame.image.load("assets/clima/frio.png"), 0.05),
+            "frio": (pygame.image.load("assets/clima/frio.png"), 0.15),
             "calor extremo": (pygame.image.load("assets/clima/calor extremo.png"), 0.05)
         }
 
         self.map_rect = pygame.Rect(640, 20, 940, 500)
 
         self.clima_surface = pygame.Surface(
-            (self.map_rect.width, self.map_rect.height),
+            self.map_rect.size,
             pygame.SRCALPHA
         )
 
-        self.chuva_leve = RainSystem(940, 500, intensity=200, angle=0.3)
-        self.chuva_forte = RainSystem(940, 500, intensity=400, angle=0.6)
-        self.sunny_overlay = SunnyOverlay(940, 500)
+        self.chuva_leve = RainSystem(940, 500, intensity=150, angle=0.2)
+        self.chuva_forte = RainSystem(940, 500, intensity=500, angle=0.5)
+        self.cold_overlay = TemperatureOverlay(940, 500, (100, 200, 255))
+        self.extreme_hot_overlay = TemperatureOverlay(940, 500, (255, 80, 60))
         self.cloudy_overlay = CloudyOverlay(940, 500)
+        self.nevoeiro = FogMoving(940, 500)
+        self.lightning = LightningBlink(self.map_rect)
+        self.tormenta_eletrica = RainSystem(940, 500, intensity=900, angle=0.8)
+        self.lightning_tormenta_eletrica = LightningBlink(self.map_rect, cooldown_range=(500, 1500))
+        self.fog_wind = FogMoving(self.map_rect.width, self.map_rect.height, speed=30, alpha=20)
+        self.wind_overlay = WindOverlay(940, 500)
+        self.wind_system = WindSystem(940, 500, intensity=120, direction=1)
+
 
         self.exercitos = [
             Exercito(0, "Saint Louis", (255, 20, 20), "Resistência Popular", "RSP"),
@@ -176,34 +185,61 @@ class Game:
     
 
     def draw_efeito_clima(self):
-        if self.clima[0] == 'Chuva Leve':
-            self.clima_surface.fill((0, 0, 0, 0))
-            self.cloudy_overlay.update(self.clock.tick(60))
+        self.clima_surface.fill((0, 0, 0, 0))
+
+        dt = self.clock.tick(60)
+
+        if self.clima[0] == 'Chuva leve':
             self.cloudy_overlay.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)
-            self.chuva_leve.update(self.clock.tick(60))
+            self.chuva_leve.update(dt)
             self.chuva_leve.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)
         
-        elif self.clima[0] == 'Chuva Forte':
-            self.clima_surface.fill((0, 0, 0, 0))
-            self.cloudy_overlay.update(self.clock.tick(60))
+        elif self.clima[0] == 'Chuva forte':
             self.cloudy_overlay.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)  
-            self.chuva_forte.update(self.clock.tick(60))
+            self.chuva_forte.update(dt)
             self.chuva_forte.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)
         
-        elif self.clima[0] == 'Ensolarado':
-            self.clima_surface.fill((0, 0, 0, 0))
-            self.sunny_overlay.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        elif self.clima[0] == 'Frio':
+            self.cold_overlay.draw(self.clima_surface)
+        
+        elif self.clima[0] == 'Nevoeiro':   
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.nevoeiro.update(dt)
+            self.nevoeiro.draw(self.clima_surface)
+
+        elif self.clima[0] == 'Calor extremo':
+            self.extreme_hot_overlay.draw(self.clima_surface)
         
         elif self.clima[0] == 'Nublado':
-            self.clima_surface.fill((0,0,0,0))
-            self.cloudy_overlay.update(self.clock.tick(60))
             self.cloudy_overlay.draw(self.clima_surface)
-            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        
+        elif self.clima[0] == 'Tempestade':
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.chuva_forte.update(dt)
+            self.chuva_forte.draw(self.clima_surface)
+        
+        elif self.clima[0] == 'Tormenta elétrica':
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.tormenta_eletrica.update(dt)
+            self.tormenta_eletrica.draw(self.clima_surface)
+        
+        elif self.clima[0] == 'Ventania':
+            self.wind_overlay.draw(self.clima_surface)
+            self.wind_system.update(dt)
+            self.wind_system.draw(self.clima_surface)
+            self.fog_wind.update(dt)
+            self.fog_wind.draw(self.clima_surface)
+
+        self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        
+        if self.clima[0] == 'Tempestade':
+            self.lightning.update(dt)
+            self.lightning.draw(self.screen)
+        
+        elif self.clima[0] == 'Tormenta elétrica':
+            self.lightning_tormenta_eletrica.update(dt)
+            self.lightning_tormenta_eletrica.draw(self.screen)
+
 
     def escolher_clima(self):
         from random import choices
@@ -258,8 +294,6 @@ class Game:
 
     def events(self):
         from random import choice, randint
-        from math import ceil
-        from modules.logica import gerar_evento
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -306,8 +340,6 @@ class Game:
                     for exercito in self.exercitos_ativos:
                         exercito.marechal.character.set_mode("Idle")
 
-                    exercito
-
                     index = self.exercito_index
                     exercito = self.exercitos_ativos[index]
                     inimigo = choice(exercito.inimigos)
@@ -315,37 +347,17 @@ class Game:
                     exercito.inimigo = inimigo
                     inimigo.inimigo = exercito
 
-                    dado1 = randint(1, 100)
-                    dado2 = randint(1, 100)
+                    dado_especial1 = randint(1, 4)
+                    dado_especial2 = randint(1, 4)
 
-                    relogio = f"{self.horario}"
-
-                    if dado1 > dado2:
-                        poder_do_round = ceil((dado1 - dado2) / 3)
-                        evento = gerar_evento(exercito, poder_do_round, self.clima[0])
-                        if evento.tipo not in ['melhoria', 'sorte']:
-                            exercito.marechal.character.set_mode("Combat 1h - Idle")
-                            inimigo.marechal.character.set_mode("Combat 1h - Idle")
-                            self.expandir_territorio(exercito, dominate=True)
-                        else:
-                            exercito.marechal.character.set_mode("Run")
-                        self.log(f"{relogio} {evento.descricao}")
-                        self.log(f"           {evento.positivo}")
-                        evento.efeito_pos()
-
+                    if dado_especial1 == dado_especial2:
+                        self.evento_poder(exercito)
+                    
                     else:
-                        poder_do_round = ceil((dado2 - dado1) / 3)
-                        evento = gerar_evento(exercito, poder_do_round, self.clima[0])
-                        if poder_do_round == 0: poder_do_round += 1
-                        if evento.tipo not in ['melhoria', 'sorte']:
-                            exercito.marechal.character.set_mode("Combat 1h - Idle")
-                            inimigo.marechal.character.set_mode("Combat 1h - Idle")
-                            self.expandir_territorio(exercito.inimigo, dominate=True)
-                        else:
-                            exercito.marechal.character.set_mode("Run")
-                        self.log(f"{relogio} {evento.descricao}")
-                        self.log(f"           {evento.negativo}")
-                        evento.efeito_neg()
+                        dado1 = randint(1, 100)
+                        dado2 = randint(1, 100)
+
+                        self.batalha(exercito, inimigo, dado1, dado2)
 
                     self.atualizar_army_cards()
 
@@ -361,6 +373,48 @@ class Game:
                 else:
                     # aumenta chance se não ocorreu evento
                     self.event_chance = min(self.event_chance + 5, 100)
+    
+
+    def batalha(self, exercito, inimigo, dado1, dado2):
+        from math import ceil
+        from modules.logica import gerar_evento
+        
+        relogio = f"{self.horario}"
+
+        if dado1 > dado2:
+            poder_do_round = ceil((dado1 - dado2) / 3)
+            evento = gerar_evento(exercito, poder_do_round, self.clima[0])
+            if evento.tipo not in ['melhoria', 'sorte']:
+                exercito.marechal.character.set_mode("Combat 1h - Idle")
+                inimigo.marechal.character.set_mode("Combat 1h - Idle")
+                self.expandir_territorio(exercito, dominate=True)
+            else:
+                exercito.marechal.character.set_mode("Run")
+            self.log(f"{relogio} {evento.descricao}")
+            self.log(f"           {evento.positivo}")
+            evento.efeito_pos()
+
+        else:
+            poder_do_round = ceil((dado2 - dado1) / 3)
+            evento = gerar_evento(exercito, poder_do_round, self.clima[0])
+            if poder_do_round == 0: poder_do_round += 1
+            if evento.tipo not in ['melhoria', 'sorte']:
+                exercito.marechal.character.set_mode("Combat 1h - Idle")
+                inimigo.marechal.character.set_mode("Combat 1h - Idle")
+                self.expandir_territorio(exercito.inimigo, dominate=True)
+            else:
+                exercito.marechal.character.set_mode("Run")
+            self.log(f"{relogio} {evento.descricao}")
+            self.log(f"           {evento.negativo}")
+            evento.efeito_neg()
+    
+    def evento_poder(self, exercito):
+        from modules.logica import poder
+
+        exercito.marechal.character.set_mode("Run")
+        evento = poder(exercito)
+        exercito.poder += 1
+        self.log(f"{self.horario} BREAKING NEWS: {evento}")
 
 
     def log(self, texto):
@@ -422,7 +476,6 @@ class Game:
         return [font.render(line, True, color) for line in lines]
 
 
-
     def generate_map_tiles(self):
         from modules.objetos.tile import Tile
 
@@ -461,10 +514,10 @@ class Game:
         self.draw_army_cards()
         self.draw_map_screen()
         self.draw_log_screen()
-        self.draw_efeito_clima()
-        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.map_position, 3)
         self.processar_explosoes_agendadas()
         self.update_explosoes()
+        self.draw_efeito_clima()
+        pygame.draw.rect(self.screen, self.cores["darkgreen"], self.map_position, 3)
         fps = int(self.clock.get_fps())
         fps_text = self.fontsJB[12].render(f"FPS: {fps}", True, (255,255,255))
         self.screen.blit(fps_text, (10,10))
@@ -631,7 +684,7 @@ class Game:
 
         cache["dia"] = self.fontsJB[28].render(f"{self.dia}", True, self.cores["amarelo"])
 
-        cache["clima"] = self.fontsJB[24].render(f"{self.clima[0].capitalize()}", True, self.cores["amarelo"])
+        cache["clima"] = self.fontsJB[24].render(f"{self.clima[0].title()}", True, self.cores["amarelo"])
 
         cache["clima_imagem"] = self.clima[1]
 
