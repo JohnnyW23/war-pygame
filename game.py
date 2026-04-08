@@ -6,7 +6,7 @@ import os
 class Game:
     def __init__(self):
         from modules.objetos.exercito import Exercito
-        from modules.objetos.rain import RainSystem
+        from modules.objetos.climas import RainSystem, SunnyOverlay, CloudyOverlay
 
         pygame.init()
 
@@ -82,17 +82,17 @@ class Game:
             "calor extremo": (pygame.image.load("assets/clima/calor extremo.png"), 0.05)
         }
 
-        
         self.map_rect = pygame.Rect(640, 20, 940, 500)
 
-        self.rain_surface = pygame.Surface(
+        self.clima_surface = pygame.Surface(
             (self.map_rect.width, self.map_rect.height),
             pygame.SRCALPHA
         )
 
-        self.rain = RainSystem(940, 500, intensity=400)
-        self.raining = True
-
+        self.chuva_leve = RainSystem(940, 500, intensity=200, angle=0.3)
+        self.chuva_forte = RainSystem(940, 500, intensity=400, angle=0.6)
+        self.sunny_overlay = SunnyOverlay(940, 500)
+        self.cloudy_overlay = CloudyOverlay(940, 500)
 
         self.exercitos = [
             Exercito(0, "Saint Louis", (255, 20, 20), "Resistência Popular", "RSP"),
@@ -175,6 +175,36 @@ class Game:
         self.horario_formatado = f"[{hora:02}:{minutos:02}]"
     
 
+    def draw_efeito_clima(self):
+        if self.clima[0] == 'Chuva Leve':
+            self.clima_surface.fill((0, 0, 0, 0))
+            self.cloudy_overlay.update(self.clock.tick(60))
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+            self.chuva_leve.update(self.clock.tick(60))
+            self.chuva_leve.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        
+        elif self.clima[0] == 'Chuva Forte':
+            self.clima_surface.fill((0, 0, 0, 0))
+            self.cloudy_overlay.update(self.clock.tick(60))
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)  
+            self.chuva_forte.update(self.clock.tick(60))
+            self.chuva_forte.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        
+        elif self.clima[0] == 'Ensolarado':
+            self.clima_surface.fill((0, 0, 0, 0))
+            self.sunny_overlay.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+        
+        elif self.clima[0] == 'Nublado':
+            self.clima_surface.fill((0,0,0,0))
+            self.cloudy_overlay.update(self.clock.tick(60))
+            self.cloudy_overlay.draw(self.clima_surface)
+            self.screen.blit(self.clima_surface, self.map_rect.topleft)
+
     def escolher_clima(self):
         from random import choices
 
@@ -185,11 +215,6 @@ class Game:
         
         clima_escolhido = choices(nomes, weights=probabilidades, k=1)[0]
         imagem = climas[clima_escolhido][0]
-
-        if clima_escolhido in ['chuva leve', 'chuva forte']:
-            self.raining = True
-        else:
-            self.raining = False
         
         return [clima_escolhido.capitalize(), imagem]
     
@@ -274,10 +299,6 @@ class Game:
 
        
             if event.type == self.UPDATE_EVENT:
-                
-                if self.raining:
-                        self.rain.update(self.clock.tick(60))
-
 
                 # sistema de chance
                 if randint(1, 100) <= self.event_chance:
@@ -440,10 +461,7 @@ class Game:
         self.draw_army_cards()
         self.draw_map_screen()
         self.draw_log_screen()
-        if self.raining:
-            self.rain_surface.fill((0, 0, 0, 0))  # limpa transparência
-            self.rain.draw(self.rain_surface)
-            self.screen.blit(self.rain_surface, self.map_rect.topleft)
+        self.draw_efeito_clima()
         pygame.draw.rect(self.screen, self.cores["darkgreen"], self.map_position, 3)
         self.processar_explosoes_agendadas()
         self.update_explosoes()
