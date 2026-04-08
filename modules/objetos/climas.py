@@ -47,21 +47,22 @@ class RainSystem:
             p.draw(surface)
 
 
-class SunnyOverlay:
-    def __init__(self, width, height):
+class TemperatureOverlay:
+    def __init__(self, width, height, color):
         self.width = width
         self.height = height
+        self.color = color
 
     def draw(self, surface):
         # vinheta dourada suave nas bordas
         vignette = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
 
         # desenha bordas com alpha crescente
-        for i in range(250):  # número de camadas
-            alpha = 120 - int(120 * (i / 250))  # alpha máximo ~50
+        for i in range(125):
+            alpha = int(130 - (i * 1.04))
             pygame.draw.rect(
                 vignette,
-                (255, 200, 100, alpha),  # dourado ensolarado
+                (*self.color, alpha),
                 (i, i, self.width - 2*i, self.height - 2*i),
                 1
             )
@@ -70,44 +71,134 @@ class SunnyOverlay:
         surface.blit(vignette, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
 
-class CloudyOverlay:
-    def __init__(self, width, height, cloud_count=15):
+
+class LightningBlink:
+    def __init__(self, map_rect, cooldown_range=(1000, 5000)):
+        self.map_rect = map_rect
+        self.timer = 0
+        self.cooldown_range = cooldown_range
+        self.cooldown = random.randint(*self.cooldown_range)
+        self.active = False
+
+    def update(self, dt):
+        self.timer += dt
+
+        if not self.active and self.timer >= self.cooldown:
+            self.active = True
+            self.timer = 0
+            self.blinks = 2
+
+        elif self.active:
+            self.blinks -= 1
+            if self.blinks <= 0:
+                self.active = False
+                self.timer = 0
+                self.cooldown = random.randint(*self.cooldown_range)
+
+    def draw(self, screen):
+        if not self.active:
+            return
+
+        # pisca SOMENTE na área do mapa
+        screen.fill(
+            (255, 255, 255),
+            self.map_rect,
+            special_flags=pygame.BLEND_RGB_ADD
+        )
+
+
+class FogMoving:
+    def __init__(self, width, height, speed=20, alpha=30):
         self.width = width
         self.height = height
-        # cada nuvem: x, y, tamanho, velocidade
-        self.clouds = [
-            [random.randint(0, width), random.randint(0, height),
-             random.randint(80, 150), random.uniform(0.02, 0.1)]
-            for _ in range(cloud_count)
+        self.speed = speed
+        self.fog_surface = pygame.Surface((width, height), pygame.SRCALPHA)
+
+        for _ in range(120):
+            value = random.randint(100, 150)
+            x = random.randint(0, width)
+            y = random.randint(0, height)
+            r = random.randint(80, 160)
+            pygame.draw.circle(
+                self.fog_surface,
+                (value, value, value, alpha),
+                (x, y),
+                r
+            )
+
+        self.offset = 0
+
+    def update(self, dt):
+        self.offset += self.speed * dt / 1000
+        if self.offset >= self.width:
+            self.offset = 0
+
+    def draw(self, surface):
+        x = int(self.offset)
+
+        surface.blit(self.fog_surface, (-x, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        surface.blit(self.fog_surface, (-x + self.width, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
+
+class CloudyOverlay:
+    def __init__(self, width, height):
+        self.overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.overlay.fill((50, 50, 70, 100))  # azul-acinzentado escuro
+
+    def draw(self, surface):
+        surface.blit(self.overlay, (0, 0))
+
+
+class WindParticle:
+    def __init__(self, width, height, direction=1):
+        self.width = width
+        self.height = height
+        self.direction = direction
+        self.reset()
+
+    def reset(self):
+        self.x = random.randint(0, self.width)
+        self.y = random.randint(0, self.height)
+        self.speed = random.randint(300, 700)
+        self.length = random.randint(15, 40)
+
+    def update(self, dt):
+        self.x += self.speed * dt / 1000 * self.direction
+
+        if self.x > self.width or self.x < -self.length:
+            self.reset()
+            self.x = -self.length if self.direction > 0 else self.width
+
+    def draw(self, surface):
+        alpha = random.randint(80, 180)
+        pygame.draw.line(
+            surface,
+            (200, 200, 200, alpha),
+            (self.x, self.y),
+            (self.x - self.length * self.direction, self.y),
+            1
+        )
+
+class WindSystem:
+    def __init__(self, width, height, intensity=120, direction=1):
+        self.particles = [
+            WindParticle(width, height, direction)
+            for _ in range(intensity)
         ]
 
     def update(self, dt):
-        for c in self.clouds:
-            c[0] += c[3] * dt  # movimento horizontal lento
-            if c[0] > self.width + c[2]:
-                c[0] = -c[2]
-                c[1] = random.randint(0, self.height)
+        for p in self.particles:
+            p.update(dt)
 
     def draw(self, surface):
-        # vinheta cinza suave nas bordas
-        vignette = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        for i in range(250):
-            alpha = int(100 - (i * 0.4))
-            pygame.draw.rect(
-                vignette,
-                (70, 70, 70, alpha),  # cinza neutro
-                (i, i, self.width - 2*i, self.height - 2*i),
-                1
-            )
-        surface.blit(vignette, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        for p in self.particles:
+            p.draw(surface)
 
-        # camada translúcida geral (reduz saturação)
-        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        overlay.fill((100, 100, 100, 200))
-        surface.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
 
-        # desenhar nuvens translúcidas
-        for x, y, r, _ in self.clouds:
-            cloud = pygame.Surface((r*2, r), pygame.SRCALPHA)
-            pygame.draw.ellipse(cloud, (60, 60, 60, 3), (0, 0, r*2, r))
-            surface.blit(cloud, (x-r, y-r//2), special_flags=pygame.BLEND_RGBA_ADD)
+class WindOverlay:
+    def __init__(self, width, height):
+        self.overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.overlay.fill((200, 200, 210, 40))
+
+    def draw(self, surface):
+        surface.blit(self.overlay, (0, 0))
