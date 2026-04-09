@@ -171,6 +171,8 @@ class Game:
         # Controle do loop
         self.running = True
 
+        self.guerra_ativa = True
+
         self.atualizar_army_cards()
     
 
@@ -263,13 +265,14 @@ class Game:
             self.atualizar_tempo_jogo(dt)
 
             self.draw()
-            self.events()
+            if self.guerra_ativa:
+                self.events()
 
         pygame.quit()
         sys.exit()
 
-    def atualizar_tempo_jogo(self, dt):
 
+    def atualizar_tempo_jogo(self, dt):
         # segundos visuais do relógio
         self.segundos += dt * 3
 
@@ -294,6 +297,7 @@ class Game:
 
     def events(self):
         from random import choice, randint
+        from modules.logica import verificar_resultado
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -342,13 +346,14 @@ class Game:
 
                     index = self.exercito_index
                     exercito = self.exercitos_ativos[index]
+                    print(self.guerra_ativa)
                     inimigo = choice(exercito.inimigos)
 
                     exercito.inimigo = inimigo
                     inimigo.inimigo = exercito
 
-                    dado_especial1 = randint(1, 4)
-                    dado_especial2 = randint(1, 4)
+                    dado_especial1 = randint(1, 100)
+                    dado_especial2 = randint(1, 100)
 
                     if dado_especial1 == dado_especial2:
                         self.evento_poder(exercito)
@@ -358,6 +363,21 @@ class Game:
                         dado2 = randint(1, 100)
 
                         self.batalha(exercito, inimigo, dado1, dado2)
+                    
+                    numero_exercitos_ativos = len(self.exercitos_ativos)
+
+                    exercito.territorio = len(exercito.tiles)
+                    inimigo.territorio = len(inimigo.tiles)
+                    
+                    for agente in [exercito, inimigo]:
+                        logs = verificar_resultado(
+                            agente,
+                            self
+                        )
+
+                        if logs:
+                            for linha in logs:
+                                self.log(linha)
 
                     self.atualizar_army_cards()
 
@@ -365,10 +385,18 @@ class Game:
                     self.event_chance = 5
 
                     # próximo exército
-                    if index == len(self.exercitos_ativos) - 1:
+                    if index == numero_exercitos_ativos - 1:
                         self.exercito_index = 0
                     else:
-                        self.exercito_index += 1
+                        # se algum exército foi removido
+                        if len(self.exercitos_ativos) < numero_exercitos_ativos:
+                            # se o removido estava antes do índice atual, ajusta
+                            if index > len(self.exercitos_ativos) - 1:
+                                self.exercito_index = 0
+                            else:
+                                self.exercito_index = index  # não incrementa, pois a lista já "andou"
+                        else:
+                            self.exercito_index += 1
 
                 else:
                     # aumenta chance se não ocorreu evento
@@ -450,7 +478,6 @@ class Game:
         if estava_no_fim:
             self.scroll_offset = max_scroll
 
-    
 
     def render_text_wrapped(self, text, font, color, max_width):
         """
@@ -699,7 +726,7 @@ class Game:
 
         self.army_card_cache = {}
 
-        for exercito in self.exercitos_ativos:
+        for exercito in self.exercitos:
             cache = {}
 
             cache["nome"] = self.fontsJB[16].render(exercito.nome, True, exercito.cor)

@@ -1422,3 +1422,185 @@ def poder(exercito):
 
         evento = choice(eventos)
         return evento
+
+
+def verificar_resultado(exercito, game):
+        from random import choice, random
+
+        if exercito.marechal.perfil == 'Político':
+            chance_a = 1.3
+        else:
+            chance_a = 1
+        
+        if exercito.inimigo.marechal.perfil == 'Político':
+            chance_b = 0.7
+        else:
+            chance_b = 1
+        
+        if exercito.inimigo.territorio < exercito.territorio / 3 and exercito.inimigo.territorio > 0:
+            if random() < (abs(exercito.territorio - exercito.inimigo.territorio) / (exercito.territorio + exercito.inimigo.territorio)) * 0.05 * chance_a * chance_b:
+                vencedor_object = exercito
+                derrotado_object = exercito.inimigo
+                vencedor = vencedor_object.nome
+                derrotado = derrotado_object.nome
+                
+                frases = [
+                    f"Com apenas pequenas áreas isoladas ainda sob seu controle, {derrotado} declarou rendição após perder a capacidade de administrar e defender seu território.",
+                    f"Após a tomada das últimas regiões estratégicas por {vencedor}, {derrotado} rendeu-se, reconhecendo que não havia mais território suficiente para sustentar a guerra.",
+                    f"Encurralado em faixas territoriais fragmentadas e sem rotas de conexão, {derrotado} anunciou sua rendição às forças de {vencedor}.",
+                    f"A perda quase total de seu território forçou {derrotado} a aceitar a derrota, já que não restavam áreas para mobilização ou defesa organizada.",
+                    f"Sem controle sobre regiões produtivas e centros administrativos, {derrotado} optou por se render diante do avanço irreversível de {vencedor}.",
+                    f"Reduzido a posições dispersas e indefensáveis, {derrotado} reconheceu a impossibilidade de continuar a guerra e se rendeu a {vencedor}.",
+                    f"A ocupação sistemática do território por {vencedor} deixou {derrotado} sem fronteiras funcionais, levando à rendição oficial.",
+                    f"Com seu território dividido e cercado, {derrotado} perdeu a capacidade de coordenação e anunciou a rendição para evitar a completa destruição.",
+                    f"A incapacidade de manter controle territorial contínuo levou {derrotado} a encerrar as hostilidades e se render às forças de {vencedor}.",
+                    f"Após perder quase todas as áreas sob seu domínio e não conseguir reorganizar suas defesas, {derrotado} declarou rendição incondicional."
+                ]
+            
+            else:
+                return
+        
+        else:
+            vencedor_object = exercito.inimigo
+            derrotado_object = exercito
+            derrotado = derrotado_object.nome
+            vencedor = vencedor_object.nome
+
+            if exercito.forca <= 0:
+                frases = [
+                    f"{derrotado} teve suas forças neutralizadas e foi destruído pelo inimigo.",
+                    f"As últimas unidades de {derrotado} foram esmagadas, não restando poder militar para resistir.",
+                    f"O exército de {derrotado} colapsou sob o peso da batalha, sendo completamente aniquilado.",
+                    f"Sem força para continuar, {derrotado} foi varrido do campo de batalha.",
+                    f"A capacidade de combate de {derrotado} chegou ao fim, selando sua derrota total."
+                ]
+                exercito.forca = 0
+
+            elif exercito.tecnologia <= 0:
+                frases = [
+                    f"A capacidade tecnológica de {derrotado} foi arruinada, sem restar condições de se defender.",
+                    f"Com seus sistemas destruídos, {derrotado} tornou-se incapaz de enfrentar o inimigo.",
+                    f"A superioridade tecnológica do adversário deixou {derrotado} indefeso.",
+                    f"Sem comunicações ou armamentos avançados, {derrotado} sucumbiu à derrota.",
+                    f"O colapso tecnológico de {derrotado} tornou qualquer resistência impossível."
+                ]
+                exercito.tecnologia = 0
+
+            elif exercito.suprimentos <= 0:
+                frases = [
+                    f"Os suprimentos de {derrotado} foram esgotados e, sem recursos, o exército foi derrotado.",
+                    f"A falta de comida, munição e combustível levou {derrotado} ao colapso.",
+                    f"Sem linhas de abastecimento, as tropas de {derrotado} foram forçadas à rendição.",
+                    f"O esgotamento logístico selou o destino de {derrotado} no conflito.",
+                    f"Privado de recursos essenciais, {derrotado} não conseguiu sustentar a guerra."
+                ]
+                exercito.suprimentos = 0
+
+            elif exercito.moral <= 0:
+                frases = [
+                    f"As tropas de {derrotado} se recusam a continuar lutando, dividindo-se entre desertores e prisioneiros de guerra.",
+                    f"A moral despencou e o exército de {derrotado} se desfez em meio ao caos.",
+                    f"Sem vontade de lutar, as tropas de {derrotado} abandonaram o campo de batalha.",
+                    f"O desespero tomou conta das fileiras de {derrotado}, encerrando qualquer resistência.",
+                    f"A perda total de moral levou {derrotado} a uma derrota inevitável."
+                ]
+                exercito.moral = 0
+
+            elif exercito.estrategia <= 0:
+                frases = [
+                    f"{derrotado} teve seus planos estratégicos completamente sufocados, não enxergando maneiras de derrotar o inimigo.",
+                    f"As decisões equivocadas de {derrotado} levaram o exército a uma derrota irreversível.",
+                    f"Sem coordenação ou liderança eficaz, {derrotado} foi superado pelo inimigo.",
+                    f"A falha estratégica deixou {derrotado} vulnerável em todos os flancos.",
+                    f"O colapso do comando estratégico selou o fracasso de {derrotado}."
+                ]
+                exercito.estrategia = 0
+            
+            elif exercito.territorio <= 0:
+                frases = [
+                    f"Todo o território de {derrotado} foi ocupado pelas forças inimigas, encerrando sua capacidade de continuar a guerra.",
+                    f"As últimas regiões controladas por {derrotado} caíram, deixando o exército sem base territorial para operar.",
+                    f"Com suas fronteiras completamente rompidas, {derrotado} perdeu o controle total de seu território e foi derrotado.",
+                    f"As forças inimigas tomaram cada posição restante de {derrotado}, eliminando qualquer domínio territorial.",
+                    f"Sem território para defender ou administrar, {derrotado} foi forçado a aceitar a derrota total."
+                ]
+                exercito.territorio = 0
+
+            else:
+                return
+        
+        frase = choice(frases)
+
+        game.exercitos_ativos.remove(derrotado_object)
+
+        for tropa in game.exercitos_ativos:
+            tropa.inimigos.remove(derrotado_object)
+
+        if len(game.exercitos_ativos) == 1:
+            game.guerra_ativa = False
+            
+        if not game.guerra_ativa:
+
+            oponentes = ''
+
+            for index, tropa in enumerate(game.exercitos):
+                if index == len(game.exercitos) - 2:
+                    oponentes += f'{tropa.nome} '
+                elif index == len(game.exercitos) - 1:
+                    oponentes += f'e {tropa.nome}'
+                else:
+                    oponentes += f'{tropa.nome}, '
+            
+            log = [
+                "===================================================================================",
+                f"{game.horario} NOTÍCIA URGENTE: A GUERRA ACABOU!",
+                f"Após {game.dia} dias de guerra, o mundo respira aliviado com o fim oficial do conflito entre {oponentes}.",
+                frase,
+                f"{vencedor} venceu a guerra!",
+                "==================================================================================="
+            ]
+        
+        else:
+            oponentes = ''
+
+            for index, tropa in enumerate(game.exercitos_ativos):
+                if index == len(game.exercitos_ativos) - 2:
+                    oponentes += f'{tropa.nome} '
+                elif index == len(game.exercitos_ativos) - 1:
+                    oponentes += f'e {tropa.nome}'
+                else:
+                    oponentes += f'{tropa.nome}, '
+            
+            log = [
+                "===================================================================================",
+                f"{game.horario} NOTÍCIA URGENTE: {derrotado} acaba de ser derrotado por {vencedor}!",
+                frase,
+                f"A cobertura continua com o conflito entre {oponentes}.",
+                "==================================================================================="
+            ]
+
+            """
+            exercito_e_marechal_morto = f"{derrotado_object.nome} - {derrotado_object.marechal['nome']}"
+            marechal_morto = derrotado_object.marechal['nome']
+            derrotado_object.operacao_marechal = False
+            clone_tropas_ativas = self.tropas_ativas[:]
+
+            for tropa_ativa in clone_tropas_ativas:
+                if tropa_ativa.operacao_marechal and tropa_ativa != vencedor_object:
+                    if tropa_ativa.operacao_marechal["oponente"] == exercito_e_marechal_morto:
+                        console.print(f"           [yellow]Os planos de {tropa_ativa.nome} para neutralizar {marechal_morto} foram frustrados![/yellow]")
+                        sleep(2)
+                        console.print(f"           [underline italic bold red1 on white] //{tropa_ativa.operacao_marechal['nome'].upper()} ABORTADA.// [/underline italic bold red1 on white]")
+                        sleep(2)
+                        tropa_ativa.operacao_marechal = False
+                    
+                elif tropa_ativa.operacao_marechal and tropa_ativa == vencedor_object:
+                    if tropa_ativa.operacao_marechal["oponente"] == exercito_e_marechal_morto:
+                        console.print(f"           [yellow]Os planos de {tropa_ativa.nome} para neutralizar {marechal_morto} foram concluídos ao neutralizar o exército inimigo![/yellow]")
+                        sleep(2)
+                        console.print(f"           [underline italic bold cyan on white] //{tropa_ativa.operacao_marechal['nome'].upper()} ARQUIVADA...// [/underline italic bold cyan on white]")
+                        sleep(2)
+                        tropa_ativa.operacao_marechal = False
+            """
+
+        return log
