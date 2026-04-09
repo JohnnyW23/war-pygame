@@ -1,19 +1,18 @@
 class Exercito:
     def __init__(self, id, nome, cor, canal_nome, canal_sigla):
-        from random import uniform
-
         self.id = id
         self.nome = nome
         self.cor = cor
         self.poder = 1
-        self.forca = 30
-        self.tecnologia = 15
-        self.suprimentos = 15
-        self.moral = 15
-        self.estrategia = 15
+        self.forca = 300
+        self.tecnologia = 150
+        self.suprimentos = 150
+        self.moral = 150
+        self.estrategia = 150
         self.inimigos = []
         self.tiles = []
         self.locais = []
+        self.status = "ativo"
 
         self.canal_nome = canal_nome
         self.canal_sigla = canal_sigla
