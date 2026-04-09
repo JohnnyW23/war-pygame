@@ -39,7 +39,10 @@ class Game:
             "secundaria": (5, 10, 5),
             "branco": (250, 250, 250),
             "darkgreen": (0, 45, 0),
-            "amarelo": (248,214,0)
+            "bright green": (0, 255, 0),
+            "amarelo": (248,214,0),
+            "cinza": (30, 30, 30),
+            "cinza claro": (85, 85, 85)
         }
 
         self.spritesheet = {
@@ -259,14 +262,14 @@ class Game:
 
     def run(self):
         while self.running:
-            dt = self.clock.tick(self.FPS)
-            self.tempo_acumulado += dt
+            if self.guerra_ativa:
+                dt = self.clock.tick(self.FPS)
+                self.tempo_acumulado += dt
 
-            self.atualizar_tempo_jogo(dt)
+                self.atualizar_tempo_jogo(dt)
 
             self.draw()
-            if self.guerra_ativa:
-                self.events()
+            self.events()
 
         pygame.quit()
         sys.exit()
@@ -293,6 +296,13 @@ class Game:
             self.log('')
         
         self.atualizar_status_weather()
+    
+
+    def ceder_bonus(self):
+        for exercito in self.exercitos_ativos:
+            for tile in exercito.tiles:
+                if tile.local != None:
+                    tile.local.gerar_bonus(exercito)
 
 
     def events(self):
@@ -337,70 +347,70 @@ class Game:
 
        
             if event.type == self.UPDATE_EVENT:
+                if self.guerra_ativa:
 
-                # sistema de chance
-                if randint(1, 100) <= self.event_chance:
+                    # sistema de chance
+                    if randint(1, 100) <= self.event_chance:
 
-                    for exercito in self.exercitos_ativos:
-                        exercito.marechal.character.set_mode("Idle")
+                        for exercito in self.exercitos_ativos:
+                            exercito.marechal.character.set_mode("Idle")
 
-                    index = self.exercito_index
-                    exercito = self.exercitos_ativos[index]
-                    print(self.guerra_ativa)
-                    inimigo = choice(exercito.inimigos)
+                        index = self.exercito_index
+                        exercito = self.exercitos_ativos[index]
+                        inimigo = choice(exercito.inimigos)
 
-                    exercito.inimigo = inimigo
-                    inimigo.inimigo = exercito
+                        exercito.inimigo = inimigo
+                        inimigo.inimigo = exercito
 
-                    dado_especial1 = randint(1, 100)
-                    dado_especial2 = randint(1, 100)
+                        dado_especial1 = randint(1, 100)
+                        dado_especial2 = randint(1, 100)
 
-                    if dado_especial1 == dado_especial2:
-                        self.evento_poder(exercito)
-                    
-                    else:
-                        dado1 = randint(1, 100)
-                        dado2 = randint(1, 100)
-
-                        self.batalha(exercito, inimigo, dado1, dado2)
-                    
-                    numero_exercitos_ativos = len(self.exercitos_ativos)
-
-                    exercito.territorio = len(exercito.tiles)
-                    inimigo.territorio = len(inimigo.tiles)
-                    
-                    for agente in [exercito, inimigo]:
-                        logs = verificar_resultado(
-                            agente,
-                            self
-                        )
-
-                        if logs:
-                            for linha in logs:
-                                self.log(linha)
-
-                    self.atualizar_army_cards()
-
-                    # reset da chance
-                    self.event_chance = 5
-
-                    # próximo exército
-                    if index == numero_exercitos_ativos - 1:
-                        self.exercito_index = 0
-                    else:
-                        # se algum exército foi removido
-                        if len(self.exercitos_ativos) < numero_exercitos_ativos:
-                            # se o removido estava antes do índice atual, ajusta
-                            if index > len(self.exercitos_ativos) - 1:
-                                self.exercito_index = 0
-                            else:
-                                self.exercito_index = index  # não incrementa, pois a lista já "andou"
+                        if dado_especial1 == dado_especial2:
+                            self.evento_poder(exercito)
+                        
                         else:
-                            self.exercito_index += 1
+                            dado1 = randint(1, 100)
+                            dado2 = randint(1, 100)
 
-                else:
-                    # aumenta chance se não ocorreu evento
-                    self.event_chance = min(self.event_chance + 5, 100)
+                            self.batalha(exercito, inimigo, dado1, dado2)
+                        
+                        numero_exercitos_ativos = len(self.exercitos_ativos)
+
+                        exercito.territorio = len(exercito.tiles)
+                        inimigo.territorio = len(inimigo.tiles)
+                        
+                        for agente in [exercito, inimigo]:
+                            logs = verificar_resultado(
+                                agente,
+                                self
+                            )
+
+                            if logs:
+                                for linha in logs:
+                                    self.log(linha)
+
+                        self.atualizar_army_cards()
+
+                        # reset da chance
+                        self.event_chance = 5
+
+                        # próximo exército
+                        if index == numero_exercitos_ativos - 1:
+                            self.exercito_index = 0
+                        else:
+                            # se algum exército foi removido
+                            if len(self.exercitos_ativos) < numero_exercitos_ativos:
+                                # se o removido estava antes do índice atual, ajusta
+                                if index > len(self.exercitos_ativos) - 1:
+                                    self.exercito_index = 0
+                                else:
+                                    self.exercito_index = index  # não incrementa, pois a lista já "andou"
+                            else:
+                                self.exercito_index += 1
+
+                    else:
+                        # aumenta chance se não ocorreu evento
+                        self.event_chance = min(self.event_chance + 5, 100)
     
 
     def batalha(self, exercito, inimigo, dado1, dado2):
@@ -410,7 +420,7 @@ class Game:
         relogio = f"{self.horario}"
 
         if dado1 > dado2:
-            poder_do_round = ceil((dado1 - dado2) / 3)
+            poder_do_round = ceil((dado1 - dado2) / 10)
             evento = gerar_evento(exercito, poder_do_round, self.clima[0])
             if evento.tipo not in ['melhoria', 'sorte']:
                 exercito.marechal.character.set_mode("Combat 1h - Idle")
@@ -423,7 +433,7 @@ class Game:
             evento.efeito_pos()
 
         else:
-            poder_do_round = ceil((dado2 - dado1) / 3)
+            poder_do_round = ceil((dado2 - dado1) / 10)
             evento = gerar_evento(exercito, poder_do_round, self.clima[0])
             if poder_do_round == 0: poder_do_round += 1
             if evento.tipo not in ['melhoria', 'sorte']:
@@ -646,9 +656,18 @@ class Game:
             elif index == 3:
                 card = pygame.Rect(x_minimo + 310, y_minimo + 350, 290, 330)
                 frame_marechal = pygame.Rect(x_minimo + 190 + 310, y_minimo + 10 + 350, 64, 90)
-
-            pygame.draw.rect(self.screen, self.cores["secundaria"], card)
-            pygame.draw.rect(self.screen, self.cores["darkgreen"], card, 3)
+            
+            if exercito.status == "ativo":
+                pygame.draw.rect(self.screen, self.cores["secundaria"], card)
+                pygame.draw.rect(self.screen, self.cores["darkgreen"], card, 3)
+            
+            elif exercito.status == "perdedor":
+                pygame.draw.rect(self.screen, self.cores["cinza"], card)
+                pygame.draw.rect(self.screen, self.cores["cinza claro"], card, 3)
+            
+            elif exercito.status == "vencedor":
+                pygame.draw.rect(self.screen, self.cores["secundaria"], card)
+                pygame.draw.rect(self.screen, self.cores["bright green"], card, 3)
 
             pygame.draw.rect(self.screen, (200, 230, 200), frame_marechal)
             pygame.draw.rect(self.screen, self.cores["darkgreen"], frame_marechal, 3)
@@ -881,7 +900,9 @@ class Game:
                     vizinho = self.tiles[vy][vx]
                     if vizinho.dono is None:
                         tiles_disponiveis.add(vizinho)
-                    elif dominate and vizinho.dono is exercito.inimigo:
+                    elif vizinho.dono.status == "derrotado":
+                        tiles_disponiveis.add(vizinho)
+                    elif dominate and vizinho.dono == exercito.inimigo:
                         tiles_disponiveis.add(vizinho)
 
 
