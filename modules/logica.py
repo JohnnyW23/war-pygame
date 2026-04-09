@@ -1533,6 +1533,11 @@ def verificar_resultado(exercito, game):
 
         game.exercitos_ativos.remove(derrotado_object)
 
+        derrotado_object.status = "perdedor"
+        derrotado_object.cor = (85, 85, 85)
+        derrotado_object.marechal.character.set_mode("Emotes")
+        derrotado_object.marechal.cor = (85, 85, 85)
+
         for tropa in game.exercitos_ativos:
             tropa.inimigos.remove(derrotado_object)
 
@@ -1540,6 +1545,9 @@ def verificar_resultado(exercito, game):
             game.guerra_ativa = False
             
         if not game.guerra_ativa:
+
+            vencedor_object.status = "vencedor"
+            vencedor_object.marechal.character.set_mode("Run")
 
             oponentes = ''
 
@@ -1552,6 +1560,7 @@ def verificar_resultado(exercito, game):
                     oponentes += f'{tropa.nome}, '
             
             log = [
+                " ",
                 "===================================================================================",
                 f"{game.horario} NOTÍCIA URGENTE: A GUERRA ACABOU!",
                 f"Após {game.dia} dias de guerra, o mundo respira aliviado com o fim oficial do conflito entre {oponentes}.",
@@ -1572,11 +1581,13 @@ def verificar_resultado(exercito, game):
                     oponentes += f'{tropa.nome}, '
             
             log = [
+                " ",
                 "===================================================================================",
                 f"{game.horario} NOTÍCIA URGENTE: {derrotado} acaba de ser derrotado por {vencedor}!",
                 frase,
                 f"A cobertura continua com o conflito entre {oponentes}.",
-                "==================================================================================="
+                "===================================================================================",
+                " "
             ]
 
             """
