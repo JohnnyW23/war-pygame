@@ -12,11 +12,11 @@ class Local:
         from random import randint
 
         if self.raridade == "comum":
-            return randint(1, 2)
+            return randint(1, 3)
         elif self.raridade == "incomum":
-            return randint(2, 3)
+            return randint(3, 5)
         elif self.raridade == "raro":
-            return randint(3, 4)
+            return randint(5, 7)
     
 
     def gerar_bonus(self, exercito):
